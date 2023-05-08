@@ -9,7 +9,7 @@ exports.index = async function (req, res) {
   try {
     const restaurants = await Restaurant.findAll(
       {
-        attributes: ['id', 'name', 'description', 'address', 'postalCode', 'url', 'shippingCosts', 'averageServiceMinutes', 'email', 'phone', 'logo', 'heroImage', 'status', 'restaurantCategoryId'],
+        attributes: ['promoted', 'id', 'name', 'description', 'address', 'postalCode', 'url', 'shippingCosts', 'averageServiceMinutes', 'email', 'phone', 'logo', 'heroImage', 'status', 'restaurantCategoryId'],
         include:
       {
         model: RestaurantCategory,
@@ -28,7 +28,7 @@ exports.indexOwner = async function (req, res) {
   try {
     const restaurants = await Restaurant.findAll(
       {
-        attributes: ['id', 'name', 'description', 'address', 'postalCode', 'url', 'shippingCosts', 'averageServiceMinutes', 'email', 'phone', 'logo', 'heroImage', 'status', 'restaurantCategoryId'],
+        attributes: ['promoted', 'id', 'name', 'description', 'address', 'postalCode', 'url', 'shippingCosts', 'averageServiceMinutes', 'email', 'phone', 'logo', 'heroImage', 'status', 'restaurantCategoryId'],
         where: { userId: req.user.id }
       })
     res.json(restaurants)
@@ -51,7 +51,7 @@ exports.create = async function (req, res) {
     const restaurant = await newRestaurant.save()
     res.json(restaurant)
   } catch (err) {
-      res.status(500).send(err)
+    res.status(500).send(err)
   }
 }
 
@@ -69,7 +69,7 @@ exports.show = async function (req, res) {
         model: RestaurantCategory,
         as: 'restaurantCategory'
       }],
-      order: [[{model:Product, as: 'products'}, 'order', 'ASC']],
+      order: [[{ model: Product, as: 'products' }, 'order', 'ASC']]
     }
     )
     res.json(restaurant)
@@ -104,6 +104,17 @@ exports.destroy = async function (req, res) {
       message = 'Could not delete restaurant.'
     }
     res.json(message)
+  } catch (err) {
+    res.status(500).send(err)
+  }
+}
+
+exports.promoted = async function (req, res) {
+  try {
+    // EX
+    const { id } = await Restaurant.findAll({ where: { promoted: true } })
+
+    res.json(id)
   } catch (err) {
     res.status(500).send(err)
   }

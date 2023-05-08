@@ -1,6 +1,20 @@
 const { check } = require('express-validator')
+const { Restaurant } = require('../../models')
 const { checkFileIsImage, checkFileMaxSize } = require('./FileValidationHelper')
 const maxFileSize = 2000000 // around 2Mb
+
+const checkRestaurantNotPromoted = async (value, { req }) => {
+  try {
+    const restaurant = await Restaurant.findAll({ where: { userId: req.user.id, promoted: true } })
+    if (restaurant !== null) {
+      return Promise.reject(new Error('There is a promoted restaurant'))
+    } else {
+      return Promise.resolve()
+    }
+  } catch (err) {
+    return Promise.reject(new Error(err))
+  }
+}
 
 module.exports = {
   create: [
@@ -26,6 +40,7 @@ module.exports = {
     check('logo').custom((value, { req }) => {
       return checkFileMaxSize(req, 'logo', maxFileSize)
     }).withMessage('Maximum file size of ' + maxFileSize / 1000000 + 'MB'),
+    check('promoted').custom(checkRestaurantNotPromoted)
   ],
   update: [
     check('name').exists().isString().isLength({ min: 1, max: 255 }).trim(),
@@ -49,6 +64,6 @@ module.exports = {
     }).withMessage('Please upload an image with format (jpeg, png).'),
     check('logo').custom((value, { req }) => {
       return checkFileMaxSize(req, 'logo', maxFileSize)
-    }).withMessage('Maximum file size of ' + maxFileSize / 1000000 + 'MB'),
+    }).withMessage('Maximum file size of ' + maxFileSize / 1000000 + 'MB')
   ]
 }
