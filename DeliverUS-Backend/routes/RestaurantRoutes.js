@@ -77,10 +77,10 @@ module.exports = (options) => {
       OrderController.analytics)
 
   app.route('/restaurants/:restaurantId/promoted')
-    .get(
+    .patch(
       middlewares.isLoggedIn,
       middlewares.hasRole('owner'),
       middlewares.checkEntityExists(Restaurant, 'restaurantId'),
       middlewares.checkRestaurantOwnership,
-      OrderController.analytics)
+      RestaurantController.promoted)
 }

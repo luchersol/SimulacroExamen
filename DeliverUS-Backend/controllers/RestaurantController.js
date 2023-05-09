@@ -29,8 +29,10 @@ exports.indexOwner = async function (req, res) {
     const restaurants = await Restaurant.findAll(
       {
         attributes: ['promoted', 'id', 'name', 'description', 'address', 'postalCode', 'url', 'shippingCosts', 'averageServiceMinutes', 'email', 'phone', 'logo', 'heroImage', 'status', 'restaurantCategoryId'],
-        where: { userId: req.user.id }
-      })
+        where: { userId: req.user.id },
+        order: [['promoted', 'DESC']]
+      }
+    )
     res.json(restaurants)
   } catch (err) {
     res.status(500).send(err)
@@ -47,10 +49,14 @@ exports.create = async function (req, res) {
   if (typeof req.files?.logo !== 'undefined') {
     newRestaurant.logo = req.files.logo[0].destination + '/' + req.files.logo[0].filename
   }
+
+  const transaction = await models.sequelize.transaction()
   try {
-    const restaurant = await newRestaurant.save()
+    const restaurant = await newRestaurant.save({ transaction })
+    await transaction.commit()
     res.json(restaurant)
   } catch (err) {
+    await transaction.rollback()
     res.status(500).send(err)
   }
 }
@@ -85,11 +91,14 @@ exports.update = async function (req, res) {
   if (typeof req.files?.logo !== 'undefined') {
     req.body.logo = req.files.logo[0].destination + '/' + req.files.logo[0].filename
   }
+  const transaction = await models.sequelize.transaction()
   try {
-    await Restaurant.update(req.body, { where: { id: req.params.restaurantId } })
+    await Restaurant.update(req.body, { where: { id: req.params.restaurantId }, transaction })
     const updatedRestaurant = await Restaurant.findByPk(req.params.restaurantId)
+    await transaction.commit()
     res.json(updatedRestaurant)
   } catch (err) {
+    await transaction.rollback()
     res.status(500).send(err)
   }
 }
@@ -111,10 +120,20 @@ exports.destroy = async function (req, res) {
 
 exports.promoted = async function (req, res) {
   try {
-    // EX
-    const { id } = await Restaurant.findAll({ where: { promoted: true } })
-
-    res.json(id)
+    const beforeRestaurant = await Restaurant.findOne({ where: { userId: req.user.id, promoted: true } })
+    const transaction = await models.sequelize.transaction()
+    try {
+      if (beforeRestaurant) {
+        await Restaurant.update({ promoted: false }, { where: { id: beforeRestaurant.id }, transaction })
+      }
+      await Restaurant.update({ promoted: true }, { where: { id: req.params.restaurantId }, transaction })
+      const updatedRestaurant = await Restaurant.findByPk(req.params.restaurantId)
+      await transaction.commit()
+      res.json(updatedRestaurant)
+    } catch (err) {
+      await transaction.rollback()
+      res.status(500).send(err)
+    }
   } catch (err) {
     res.status(500).send(err)
   }

@@ -5,8 +5,8 @@ const maxFileSize = 2000000 // around 2Mb
 
 const checkRestaurantNotPromoted = async (value, { req }) => {
   try {
-    const restaurant = await Restaurant.findAll({ where: { userId: req.user.id, promoted: true } })
-    if (restaurant !== null) {
+    const restaurant = await Restaurant.findOne({ where: { userId: req.user.id, promoted: true } })
+    if (restaurant !== null && req.body.promoted) {
       return Promise.reject(new Error('There is a promoted restaurant'))
     } else {
       return Promise.resolve()

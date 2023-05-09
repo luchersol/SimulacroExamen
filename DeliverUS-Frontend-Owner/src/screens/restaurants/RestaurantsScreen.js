@@ -2,7 +2,7 @@
 import React, { useContext, useEffect, useState } from 'react'
 import { StyleSheet, FlatList, Pressable, View, Text } from 'react-native'
 
-import { getAll, remove, promote } from '../../api/RestaurantEndpoints'
+import { getAll, remove, promote, getDetail } from '../../api/RestaurantEndpoints'
 import ImageCard from '../../components/ImageCard'
 import TextSemiBold from '../../components/TextSemibold'
 import TextRegular from '../../components/TextRegular'
@@ -38,19 +38,23 @@ export default function RestaurantsScreen ({ navigation, route }) {
         }}
       >
         <TextRegular numberOfLines={2}>{item.description}</TextRegular>
-        <View style={{ flexDirection: 'row' }}>
-          {item.averageServiceMinutes !== null &&
+
+        {item.averageServiceMinutes !== null &&
             <TextSemiBold>Avg. service time: <TextSemiBold textStyle={{ color: GlobalStyles.brandPrimary }}>{item.averageServiceMinutes} min.</TextSemiBold></TextSemiBold>
           }
+
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+          <TextSemiBold>Shipping: <TextSemiBold textStyle={{ color: GlobalStyles.brandPrimary }}>{item.shippingCosts.toFixed(2)}€</TextSemiBold></TextSemiBold>
           {item.promoted &&
-            <Text style={{ alignSelf: 'flex-end' }}>¡EN PROMOCIÓN!</Text>
+            <View style={{ borderColor: GlobalStyles.brandGreenTap, borderWidth: 3, borderRadius: 8 }}>
+              <Text style={{ color: GlobalStyles.brandPrimary, margin: 5 }}>¡En promoción!</Text>
+            </View>
           }
         </View>
 
-        <TextSemiBold>Shipping: <TextSemiBold textStyle={{ color: GlobalStyles.brandPrimary }}>{item.shippingCosts.toFixed(2)}€</TextSemiBold></TextSemiBold>
         <View style={styles.actionButtonsContainer}>
           <Pressable
-            onPress={() => navigation.navigate('EditRestaurantScreen', { id: item.id })
+            onPress={() => navigation.navigate('EditRestaurantScreen', { id: item.id, promoted: item.promoted })
             }
             style={({ pressed }) => [
               {
@@ -122,7 +126,9 @@ export default function RestaurantsScreen ({ navigation, route }) {
       <>
       {loggedInUser &&
       <Pressable
-        onPress={() => navigation.navigate('CreateRestaurantScreen')
+        onPress={() => {
+          navigation.navigate('CreateRestaurantScreen')
+        }
         }
         style={({ pressed }) => [
           {
@@ -182,7 +188,10 @@ export default function RestaurantsScreen ({ navigation, route }) {
 
   const promotedRestaurant = async (restaurant) => {
     try {
-      await promote(restaurant.id)
+      if (!restaurant.promoted) {
+        const r = await getDetail(restaurant.id)
+        await promote(restaurant.id, r)
+      }
       await fetchRestaurants()
       setRestaurantToBePromoted(null)
       showMessage({

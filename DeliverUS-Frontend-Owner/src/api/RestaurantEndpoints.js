@@ -23,8 +23,8 @@ function remove (id) {
   return destroy(`restaurants/${id}`)
 }
 
-function changePromote (id) {
-  return patch(`restaurant/${id}/promote`)
+function promote (id, data) {
+  return patch(`restaurants/${id}/promoted`, data)
 }
 
-export { getAll, getDetail, getRestaurantCategories, create, update, remove, changePromote }
+export { getAll, getDetail, getRestaurantCategories, create, update, remove, promote }

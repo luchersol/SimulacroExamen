@@ -1,10 +1,10 @@
 import React, { useEffect, useState } from 'react'
-import { Image, Platform, Pressable, ScrollView, StyleSheet, View } from 'react-native'
+import { Image, Platform, Pressable, ScrollView, StyleSheet, Switch, View } from 'react-native'
 import * as ExpoImagePicker from 'expo-image-picker'
 import { MaterialCommunityIcons } from '@expo/vector-icons'
 import * as yup from 'yup'
 import DropDownPicker from 'react-native-dropdown-picker'
-import { update, getRestaurantCategories, getDetail } from '../../api/RestaurantEndpoints'
+import { update, getRestaurantCategories, getDetail, getAll } from '../../api/RestaurantEndpoints'
 import InputItem from '../../components/InputItem'
 import TextRegular from '../../components/TextRegular'
 import * as GlobalStyles from '../../styles/GlobalStyles'
@@ -22,7 +22,7 @@ export default function EditRestaurantScreen ({ navigation, route }) {
   const [backendErrors, setBackendErrors] = useState()
   const [restaurant, setRestaurant] = useState({})
 
-  const [initialRestaurantValues, setInitialRestaurantValues] = useState({ name: null, description: null, address: null, postalCode: null, url: null, shippingCosts: null, email: null, phone: null, restaurantCategoryId: null, logo: null, heroImage: null })
+  const [initialRestaurantValues, setInitialRestaurantValues] = useState({ name: null, description: null, address: null, postalCode: null, url: null, shippingCosts: null, email: null, phone: null, restaurantCategoryId: null, logo: null, heroImage: null, promoted: route.params.promoted })
   const validationSchema = yup.object().shape({
     name: yup
       .string()
@@ -130,6 +130,14 @@ export default function EditRestaurantScreen ({ navigation, route }) {
   const updateRestaurant = async (values) => {
     setBackendErrors([])
     try {
+      if (values.promoted) {
+        const fetchedRestaurants = await getAll()
+        const beforePromotedRestaurant = fetchedRestaurants.find(p => p.promoted)
+        if (beforePromotedRestaurant) {
+          beforePromotedRestaurant.promoted = false
+          await update(beforePromotedRestaurant.id, beforePromotedRestaurant)
+        }
+      }
       const updatedRestaurant = await update(restaurant.id, values)
       showMessage({
         message: `Restaurant ${updatedRestaurant.name} succesfully updated`,
@@ -228,6 +236,18 @@ export default function EditRestaurantScreen ({ navigation, route }) {
                 <TextRegular>Hero image: </TextRegular>
                 <Image style={styles.image} source={values.heroImage ? { uri: values.heroImage.assets[0].uri } : restaurantBackground} />
               </Pressable>
+
+              <TextRegular>Is it promoted? </TextRegular>
+              <Switch
+                trackColor={{ false: GlobalStyles.brandSecondary, true: GlobalStyles.brandPrimary }}
+                thumbColor={values.promoted ? GlobalStyles.brandSecondary : '#f4f3f4'}
+                value={values.promoted}
+                style={styles.switch}
+                onValueChange={value =>
+                  setFieldValue('promoted', value)
+                }
+              />
+              <ErrorMessage name={'promoted'} render={msg => <TextError>{msg}</TextError> }/>
 
               {backendErrors &&
                 backendErrors.map((error, index) => <TextError key={index}>{error.param}-{error.msg}</TextError>)
